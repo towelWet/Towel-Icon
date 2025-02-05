@@ -4,36 +4,48 @@ from PIL import Image
 import subprocess
 import sys
 import os
+import shutil  # Import shutil for file operations
 
-def convert_image_to_ico(input_path: str, output_path: str) -> None:
+def create_iconset(image_path, iconset_path):
+    """
+    Creates an iconset folder from an input image with all necessary sizes for .icns.
+    """
+    sizes = [16, 32, 64, 128, 256, 512, 1024]  # sizes needed for .icns
+    if not os.path.exists(iconset_path):
+        os.makedirs(iconset_path)
+    for size in sizes:
+        output_size = (size, size)
+        icon_name = f'icon_{size}x{size}.png'
+        img = Image.open(image_path)
+        img = img.resize(output_size, Image.LANCZOS)
+        img.save(os.path.join(iconset_path, icon_name))
+
+def convert_image_to_ico(input_path, output_path):
     """
     Converts the given input image to Windows .ico format using Pillow.
-
-    :param input_path: The file path to the input image.
-    :param output_path: The desired output file path ending with '.ico'.
     """
     image = Image.open(input_path)
     image.save(output_path, format='ICO', sizes=[(256, 256), (128, 128), (64, 64), (32, 32), (16, 16)])
 
-def convert_image_to_icns(input_path: str, output_path: str) -> None:
+def convert_image_to_icns(input_path, output_path):
     """
-    Converts the given input image to Mac .icns format using the macOS 'sips' command.
-    Note: This function only works on macOS.
-
-    :param input_path: The file path to the input image.
-    :param output_path: The desired output file path ending with '.icns'.
+    Converts the given input image to Mac .icns format using macOS iconutil.
     """
     if sys.platform != "darwin":
         messagebox.showerror("Error", "ICNS conversion is only supported on macOS.")
         return
-    # macOS command using sips to create an icns file
-    subprocess.run(["sips", "-s", "format", "icns", input_path, "--out", output_path], check=True)
+    base_name = os.path.splitext(os.path.basename(input_path))[0]
+    iconset_folder = base_name + '.iconset'  # Correct folder naming
+    iconset_path = os.path.join(os.path.dirname(input_path), iconset_folder)
+    create_iconset(input_path, iconset_path)
+    subprocess.run(['iconutil', '-c', 'icns', iconset_path, '-o', output_path], check=True)
+    shutil.rmtree(iconset_path)  # Clean up the temporary iconset folder after conversion
 
 class ImageConverterApp:
     def __init__(self, master):
         self.master = master
         self.master.title("Image Converter")
-        self.master.geometry("400x300")
+        self.master.geometry("400x300")  # Adjusted window size as requested
 
         self.input_file_path = tk.StringVar()
         self.output_format = tk.StringVar(value="ICO")
@@ -79,7 +91,7 @@ class ImageConverterApp:
                 convert_image_to_icns(input_path, output_path)
             messagebox.showinfo("Success", f"Successfully converted to {self.output_format.get()}!")
         except Exception as e:
-            messagebox.showerror("Conversion Error", f"Error converting file: {e}")
+            messagebox.showerror("Conversion Error", f"Error converting file: {str(e)}")
 
 def main():
     root = tk.Tk()
