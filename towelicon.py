@@ -33,7 +33,7 @@ class ImageConverterApp:
     def __init__(self, master):
         self.master = master
         self.master.title("Image Converter")
-        self.master.geometry("400x200")
+        self.master.geometry("400x300")
 
         self.input_file_path = tk.StringVar()
         self.output_format = tk.StringVar(value="ICO")
